@@ -1,0 +1,75 @@
+@import "tailwindcss";
+
+@keyframes fade-up {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+.animate-fade-up {
+  animation: fade-up 0.4s ease-out both;
+}
+
+/* 卡片进入：从右侧滑入 */
+@keyframes card-enter {
+  from { opacity: 0; transform: translateX(60px) scale(0.95); }
+  to { opacity: 1; transform: translateX(0) scale(1); }
+}
+.animate-card-enter {
+  animation: card-enter 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+}
+
+/* 卡片答对：弹跳 + 光晕 */
+@keyframes card-celebrate {
+  0% { transform: scale(1); }
+  30% { transform: scale(1.03); }
+  60% { transform: scale(0.98); }
+  100% { transform: scale(1); }
+}
+.animate-card-celebrate {
+  animation: card-celebrate 0.4s ease-out both;
+}
+
+/* 卡片退出：向左飞出 */
+@keyframes card-exit {
+  0% { opacity: 1; transform: translateX(0) scale(1); }
+  100% { opacity: 0; transform: translateX(-80px) scale(0.92); }
+}
+.animate-card-exit {
+  animation: card-exit 0.3s cubic-bezier(0.55, 0, 1, 0.45) both;
+}
+
+/* 正确选项闪光 */
+@keyframes answer-glow {
+  0% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0.5); }
+  50% { box-shadow: 0 0 20px 4px rgba(16, 185, 129, 0.3); }
+  100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
+}
+.animate-answer-glow {
+  animation: answer-glow 0.6s ease-out both;
+}
+
+/* 粒子扩散 */
+@keyframes particle-burst {
+  0% { transform: translate(var(--tx), var(--ty)) scale(1); opacity: 1; }
+  100% { transform: translate(calc(var(--tx) * 3.5), calc(var(--ty) * 3.5)) scale(0); opacity: 0; }
+}
+.particle {
+  position: absolute;
+  border-radius: 50%;
+  animation: particle-burst 0.6s cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
+/* 进度点跳动 */
+@keyframes dot-pop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.5); }
+  100% { transform: scale(1); }
+}
+.animate-dot-pop {
+  animation: dot-pop 0.3s ease-out both;
+}
+
+body {
+  margin: 0;
+  background: #0a0a12;
+  overflow: hidden;
+}
