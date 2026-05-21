@@ -38,46 +38,12 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H -p $PORT $HOST >> ~/.ssh/known_hosts 2>/dev/null
 
-          echo "==> Syncing files to server..."
-          ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST "mkdir -p $DEPLOY_PATH"
-
-          # Copy dist files using scp
+          echo "==> Syncing files..."
+          ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST "mkdir -p $DEPLOY_PATH/dist"
           scp -o StrictHostKeyChecking=no -P $PORT -r dist/* $USERNAME@$HOST:$DEPLOY_PATH/dist/
 
           echo "==> Configuring Nginx..."
-          ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST bash -c '
-            set -e
-            APP_NAME="quit-smoking-app"
-            DEPLOY_DIR="$DEPLOY_PATH"
+          printf '%s\n' 'server {' '    listen 80;' '    server_name _;' '    root /var/www/quit-smoking-app/dist;' '    index index.html;' '    location / {' '        try_files $uri $uri/ /index.html;' '    }' '    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {' '        expires 30d;' '        add_header Cache-Control "public, immutable";' '    }' '    gzip on;' '    gzip_types text/css application/javascript application/json image/svg+xml;' '    gzip_min_length 1000;' '}' | ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST "sudo tee /etc/nginx/sites-available/quit-smoking-app > /dev/null"
+          ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST "sudo ln -sf /etc/nginx/sites-available/quit-smoking-app /etc/nginx/sites-enabled/ && sudo rm -f /etc/nginx/sites-enabled/default && sudo nginx -t && sudo systemctl reload nginx"
 
-            sudo tee /etc/nginx/sites-available/$APP_NAME > /dev/null <<'"'"'NGINX'"'"'
-server {
-    listen 80;
-    server_name _;
-
-    root /var/www/quit-smoking-app/dist;
-    index index.html;
-
-    location / {
-        try_files $uri $uri/ /index.html;
-    }
-
-    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
-        expires 30d;
-        add_header Cache-Control "public, immutable";
-    }
-
-    gzip on;
-    gzip_types text/css application/javascript application/json image/svg+xml;
-    gzip_min_length 1000;
-}
-NGINX
-
-            sudo ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
-            sudo rm -f /etc/nginx/sites-enabled/default
-            sudo nginx -t && sudo systemctl reload nginx
-
-            echo "==> Deployment complete!"
-          '
-
-          echo "==> Deployment successful!"
+          echo "==> Done! Visit http://$HOST"
