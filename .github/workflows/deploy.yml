@@ -43,7 +43,7 @@ jobs:
           scp -o StrictHostKeyChecking=no -P $PORT -r dist/* $USERNAME@$HOST:$DEPLOY_PATH/dist/
 
           echo "==> Configuring Nginx..."
-          printf '%s\n' 'server {' '    listen 80;' '    server_name _;' '    root /var/www/quit-smoking-app/dist;' '    index index.html;' '    location / {' '        try_files $uri $uri/ /index.html;' '    }' '    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {' '        expires 30d;' '        add_header Cache-Control "public, immutable";' '    }' '    gzip on;' '    gzip_types text/css application/javascript application/json image/svg+xml;' '    gzip_min_length 1000;' '}' | ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST "sudo tee /etc/nginx/sites-available/quit-smoking-app > /dev/null"
+          printf '%s\n' 'server {' '    listen 8001;' '    server_name _;' '    root /var/www/quit-smoking-app/dist;' '    index index.html;' '    location / {' '        try_files $uri $uri/ /index.html;' '    }' '    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {' '        expires 30d;' '        add_header Cache-Control public, immutable;' '    }' '    gzip on;' '    gzip_types text/css application/javascript application/json image/svg+xml;' '    gzip_min_length 1000;' '}' | ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST "sudo tee /etc/nginx/sites-available/quit-smoking-app > /dev/null"
           ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST "sudo ln -sf /etc/nginx/sites-available/quit-smoking-app /etc/nginx/sites-enabled/ && sudo rm -f /etc/nginx/sites-enabled/default && sudo nginx -t && sudo systemctl reload nginx"
 
-          echo "==> Done! Visit http://$HOST"
+          echo "==> Done! Visit http://$HOST:8001"
