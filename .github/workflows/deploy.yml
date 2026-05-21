@@ -1,0 +1,88 @@
+name: Deploy to Alibaba Cloud
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Deploy to server
+        env:
+          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
+          HOST: ${{ secrets.HOST }}
+          PORT: ${{ secrets.PORT }}
+          USERNAME: ${{ secrets.USERNAME }}
+          DEPLOY_PATH: ${{ secrets.DEPLOY_PATH }}
+        run: |
+          mkdir -p ~/.ssh
+          echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          ssh-keyscan -H -p $PORT $HOST >> ~/.ssh/known_hosts 2>/dev/null
+
+          ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST << 'EOF'
+            set -e
+            APP_NAME="quit-smoking-app"
+            DEPLOY_DIR="$DEPLOY_PATH"
+
+            echo "==> Creating/Updating deployment directory..."
+            if [ -d "$DEPLOY_DIR/.git" ]; then
+              cd "$DEPLOY_DIR" && git pull
+            else
+              rm -rf "$DEPLOY_DIR"
+              git clone https://github.com/zhezhu0304/quit-smoking-app.git "$DEPLOY_DIR"
+              cd "$DEPLOY_DIR"
+            fi
+
+            echo "==> Installing dependencies and building..."
+            npm ci
+            npm run build
+
+            echo "==> Configuring Nginx..."
+            sudo tee /etc/nginx/sites-available/$APP_NAME > /dev/null <<'NGINX'
+server {
+    listen 80;
+    server_name _;
+
+    root /var/www/quit-smoking-app/dist;
+    index index.html;
+
+    location / {
+        try_files $uri $uri/ /index.html;
+    }
+
+    location ~* \.(js|css|png|jpg|jpeg|gif|ico|svg|woff2?)$ {
+        expires 30d;
+        add_header Cache-Control "public, immutable";
+    }
+
+    gzip on;
+    gzip_types text/css application/javascript application/json image/svg+xml;
+    gzip_min_length 1000;
+}
+NGINX
+
+            sudo ln -sf /etc/nginx/sites-available/$APP_NAME /etc/nginx/sites-enabled/
+            sudo rm -f /etc/nginx/sites-enabled/default
+            sudo nginx -t && sudo systemctl reload nginx
+
+            echo "==> Deployment complete!"
+          EOF

@@ -91,7 +91,7 @@ function IntroScreen({ onStart, userId, onOpenUser }) {
         <h1 className="text-4xl font-bold text-white mb-3 tracking-tight">轻松戒烟</h1>
         <p className="text-amber-400/80 text-sm mb-6 font-medium">认知重构之旅</p>
         <p className="text-slate-400 text-sm leading-relaxed max-w-xs mx-auto mb-10">
-          破除对香烟的 20 个错误认知，重获自由
+          破除对香烟的 {modules.length} 个错误认知，重获自由
         </p>
         <button
           onClick={onStart}
@@ -115,29 +115,29 @@ function IntroScreen({ onStart, userId, onOpenUser }) {
   );
 }
 
-function ProgressDots({ current, total, completed, poppingId }) {
+function ProgressBar({ current, total, completed }) {
+  const progress = (completed.length / total) * 100;
+  const currentPercent = ((current - 1) / total) * 100;
+  const currentWidth = (1 / total) * 100;
+
   return (
-    <div className="flex items-center justify-center gap-1.5">
-      {Array.from({ length: total }, (_, i) => {
-        const id = i + 1;
-        const isDone = completed.includes(id);
-        const isCurrent = id === current;
-        const isPopping = id === poppingId;
-        return (
-          <div
-            key={id}
-            className={`rounded-full transition-all duration-300 ${
-              isPopping ? 'animate-dot-pop' : ''
-            } ${
-              isCurrent
-                ? 'w-6 h-2 bg-amber-400'
-                : isDone
-                ? 'w-2 h-2 bg-emerald-500'
-                : 'w-2 h-2 bg-slate-700'
-            }`}
-          />
-        );
-      })}
+    <div className="w-full">
+      <div className="flex items-center justify-between mb-2">
+        <span className="text-amber-400 text-xs font-medium">第 {current} 题</span>
+        <span className="text-slate-500 text-xs">{completed.length} / {total}</span>
+      </div>
+      <div className="relative h-1.5 bg-slate-800 rounded-full overflow-hidden">
+        {/* 已完成进度 */}
+        <div
+          className="absolute left-0 top-0 h-full bg-emerald-500 rounded-full transition-all duration-500 ease-out"
+          style={{ width: `${progress}%` }}
+        />
+        {/* 当前题目位置 */}
+        <div
+          className="absolute top-0 h-full bg-amber-400 rounded-full transition-all duration-300 ease-out"
+          style={{ left: `${currentPercent}%`, width: `${currentWidth}%` }}
+        />
+      </div>
     </div>
   );
 }
@@ -400,7 +400,6 @@ export default function App() {
   const [showResult, setShowResult] = useState(false);
   const [animClass, setAnimClass] = useState('animate-card-enter');
   const [showBurst, setShowBurst] = useState(false);
-  const [poppingDot, setPoppingDot] = useState(null);
   const [showUserPanel, setShowUserPanel] = useState(false);
 
   const module = modules[currentCard - 1];
@@ -418,7 +417,7 @@ export default function App() {
   };
 
   const goTo = (id) => {
-    if (id < 1 || id > 20) return;
+    if (id < 1 || id > modules.length) return;
     setCurrentCard(id);
     setRevealed(isCompleted(id));
     setQuizAnswer(null);
@@ -434,16 +433,14 @@ export default function App() {
       // 答对了！播放庆祝动画序列
       setAnimClass('animate-card-celebrate');
       setShowBurst(true);
-      setPoppingDot(module.id);
 
       setTimeout(() => {
         setShowBurst(false);
-        setPoppingDot(null);
         setAnimClass('animate-card-exit');
 
         setTimeout(() => {
           completeModule(module.id);
-          if (currentCard >= 20) {
+          if (currentCard >= modules.length) {
             setStep('complete');
           } else {
             goTo(currentCard + 1);
@@ -470,7 +467,7 @@ export default function App() {
       )}
 
       {progress.currentStep === 'cards' && (
-        <div className="h-screen flex flex-col">
+        <div className="h-screen flex flex-col overflow-hidden">
           {/* 顶部栏 */}
           <div className="px-5 pt-5 pb-3 flex items-center justify-between shrink-0">
             <button
@@ -485,18 +482,17 @@ export default function App() {
             </div>
           </div>
 
-          {/* 进度点 */}
+          {/* 进度条 */}
           <div className="px-5 pb-4 shrink-0">
-            <ProgressDots
+            <ProgressBar
               current={currentCard}
-              total={20}
+              total={modules.length}
               completed={progress.completed}
-              poppingId={poppingDot}
             />
           </div>
 
           {/* 卡片区域 */}
-          <div className="flex-1 px-5 overflow-y-auto pb-4">
+          <div className="flex-1 min-h-0 px-5 overflow-y-auto pb-4">
             <CardView
               module={module}
               revealed={revealed || cardCompleted}
@@ -511,7 +507,7 @@ export default function App() {
           </div>
 
           {/* 底部导航 */}
-          <div className="px-5 py-4 flex items-center justify-between shrink-0 border-t border-slate-800/50">
+          <div className="px-5 py-4 shrink-0 border-t border-slate-800/50 flex items-center justify-between">
             <button
               onClick={() => goTo(currentCard - 1)}
               disabled={currentCard <= 1}
@@ -521,11 +517,11 @@ export default function App() {
               上一组
             </button>
             <span className="text-slate-600 text-xs">
-              {currentCard} / 20
+              {currentCard} / {modules.length}
             </span>
             <button
               onClick={() => goTo(currentCard + 1)}
-              disabled={currentCard >= 20 || !isCompleted(currentCard)}
+              disabled={currentCard >= modules.length || !isCompleted(currentCard)}
               className="flex items-center gap-1 text-sm text-slate-500 disabled:opacity-30 transition-all"
             >
               下一组
