@@ -38,26 +38,19 @@ jobs:
           chmod 600 ~/.ssh/id_ed25519
           ssh-keyscan -H -p $PORT $HOST >> ~/.ssh/known_hosts 2>/dev/null
 
-          ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST << 'EOF'
+          echo "==> Syncing files to server..."
+          ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST "mkdir -p $DEPLOY_PATH"
+
+          # Copy dist files using scp
+          scp -o StrictHostKeyChecking=no -P $PORT -r dist/* $USERNAME@$HOST:$DEPLOY_PATH/dist/
+
+          echo "==> Configuring Nginx..."
+          ssh -o StrictHostKeyChecking=no -p $PORT $USERNAME@$HOST bash -c '
             set -e
             APP_NAME="quit-smoking-app"
             DEPLOY_DIR="$DEPLOY_PATH"
 
-            echo "==> Creating/Updating deployment directory..."
-            if [ -d "$DEPLOY_DIR/.git" ]; then
-              cd "$DEPLOY_DIR" && git pull
-            else
-              rm -rf "$DEPLOY_DIR"
-              git clone https://github.com/zhezhu0304/quit-smoking-app.git "$DEPLOY_DIR"
-              cd "$DEPLOY_DIR"
-            fi
-
-            echo "==> Installing dependencies and building..."
-            npm ci
-            npm run build
-
-            echo "==> Configuring Nginx..."
-            sudo tee /etc/nginx/sites-available/$APP_NAME > /dev/null <<'NGINX'
+            sudo tee /etc/nginx/sites-available/$APP_NAME > /dev/null <<'"'"'NGINX'"'"'
 server {
     listen 80;
     server_name _;
@@ -85,4 +78,6 @@ NGINX
             sudo nginx -t && sudo systemctl reload nginx
 
             echo "==> Deployment complete!"
-          EOF
+          '
+
+          echo "==> Deployment successful!"
